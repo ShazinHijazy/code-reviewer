@@ -1,0 +1,118 @@
+name: Tests & Linting
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black
+    
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Check code style (exit-zero treats all errors as warnings)
+        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Check code formatting with black
+      run: |
+        black src/ tests/ --check --diff || true
+    
+    - name: Run tests with pytest
+      run: |
+        pytest tests/ -v --tb=short --cov=src --cov-report=xml --cov-report=html
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pylint bandit
+    
+    - name: Run Pylint
+      run: |
+        pylint src/ --exit-zero --disable=C0114,C0115,C0116 || true
+    
+    - name: Run security check with bandit
+      run: |
+        bandit -r src/ -ll -f json -o bandit-report.json || true
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test import
+      run: |
+        python -c "import sys; sys.path.insert(0, 'src'); from code_reviewer import CodeReviewer; print('✓ All modules import successfully')"
+    
+    - name: Check for syntax errors
+      run: |
+        python -m py_compile src/*.py tests/*.py
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [test, code-quality, build]
+    if: always()
+    
+    steps:
+    - name: Print build status
+      run: |
+        echo "Build Status: ${{ job.status }}"
+        echo "Tests: ${{ needs.test.result }}"
+        echo "Code Quality: ${{ needs.code-quality.result }}"
+        echo "Build: ${{ needs.build.result }}"
