@@ -60,4 +60,3 @@ class DataProcessor:
         }
         
         return transformed
-cd /Users/mohamedhijazyshazinhassan/code-reviewer && /usr/local/bin/python3 app.py

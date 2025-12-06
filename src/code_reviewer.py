@@ -1,12 +1,13 @@
 """
 Code Reviewer - Static Analysis Based Code Review System
-Reviews Python code without using LLM APIs
+Reviews multiple languages without using LLM APIs
+Supports: Python, JavaScript, TypeScript, Java, C#, Go, Rust, etc.
 """
 
 import ast
 import re
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from enum import Enum
 
 class Severity(Enum):
@@ -77,7 +78,7 @@ class CodeAnalyzer(ast.NodeVisitor):
         
         # Check function complexity
         complexity = self._calculate_complexity(node)
-        if complexity > 10:
+        if complexity >= 10:
             self.issues.append(CodeIssue(
                 line=node.lineno,
                 column=0,
@@ -395,3 +396,264 @@ class CodeReviewer:
                     print(f"   Suggestion: {issue.suggestion}")
         
         print("\n" + "="*70 + "\n")
+
+
+def detect_language(filename: str, code: str) -> str:
+    """Detect programming language from filename and code"""
+    ext = filename.lower().split('.')[-1] if '.' in filename else ''
+    
+    ext_to_lang = {
+        # Python
+        'py': 'python',
+        'pyw': 'python',
+        'pyx': 'python',
+        
+        # JavaScript & TypeScript
+        'js': 'javascript',
+        'mjs': 'javascript',
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'jsx': 'javascript',
+        
+        # Java & JVM
+        'java': 'java',
+        'kt': 'kotlin',
+        'groovy': 'groovy',
+        'scala': 'scala',
+        
+        # C Family
+        'c': 'c',
+        'h': 'c',
+        'cpp': 'cpp',
+        'cc': 'cpp',
+        'cxx': 'cpp',
+        'c++': 'cpp',
+        'hpp': 'cpp',
+        'h++': 'cpp',
+        
+        # C#
+        'cs': 'csharp',
+        
+        # Go
+        'go': 'go',
+        
+        # Rust
+        'rs': 'rust',
+        
+        # Ruby
+        'rb': 'ruby',
+        'erb': 'ruby',
+        
+        # PHP
+        'php': 'php',
+        'php3': 'php',
+        'php4': 'php',
+        'php5': 'php',
+        'php7': 'php',
+        'phtml': 'php',
+        
+        # Swift
+        'swift': 'swift',
+        
+        # Objective-C
+        'm': 'objc',
+        'mm': 'objc',
+        
+        # Shell
+        'sh': 'shell',
+        'bash': 'shell',
+        'zsh': 'shell',
+        'fish': 'shell',
+        
+        # SQL
+        'sql': 'sql',
+        
+        # Markup
+        'html': 'html',
+        'htm': 'html',
+        'xml': 'xml',
+        'json': 'json',
+        'yaml': 'yaml',
+        'yml': 'yaml',
+        'toml': 'toml',
+        
+        # Other
+        'dart': 'dart',
+        'go': 'golang',
+        'r': 'r',
+        'lua': 'lua',
+        'pl': 'perl',
+        'vb': 'vbnet',
+        'f90': 'fortran',
+        'pas': 'pascal',
+    }
+    
+    if ext in ext_to_lang:
+        return ext_to_lang[ext]
+    
+    # Fallback to code analysis
+    code_lower = code.lower()
+    
+    if 'def ' in code_lower or 'import ' in code_lower or 'from ' in code_lower:
+        return 'python'
+    elif 'function ' in code_lower or 'const ' in code_lower or 'let ' in code_lower:
+        return 'javascript'
+    elif 'public class' in code_lower or 'private class' in code_lower:
+        return 'java'
+    elif 'func ' in code_lower or 'package ' in code_lower:
+        return 'go'
+    elif 'fn ' in code_lower or ('let ' in code_lower and 'mut ' in code_lower):
+        return 'rust'
+    elif 'package;' in code_lower or 'use strict' in code_lower:
+        return 'javascript'
+    elif '#include' in code_lower or 'using namespace' in code_lower:
+        return 'cpp'
+    elif '#include' in code_lower and ('int main' in code_lower or 'void main' in code_lower):
+        return 'c'
+    elif 'class ' in code_lower and ':' in code_lower:
+        return 'python'
+    
+    return 'unknown'
+
+
+
+class MultiLanguageAnalyzer:
+    """Generic pattern-based analyzer for multiple languages"""
+    
+    def __init__(self, code: str, language: str):
+        self.code = code
+        self.language = language
+        self.lines = code.split('\n')
+        self.issues: List[CodeIssue] = []
+    
+    def analyze(self) -> List[CodeIssue]:
+        """Run generic analysis on code"""
+        self._check_generic_issues()
+        self._check_complexity_metrics()
+        self._check_security_patterns()
+        self._check_naming_patterns()
+        return self.issues
+    
+    def _check_generic_issues(self) -> None:
+        """Check for generic code issues"""
+        for i, line in enumerate(self.lines, 1):
+            # Check for TODO/FIXME comments
+            if re.search(r'#|//|/\*.*\*/', line):
+                if re.search(r'TODO|FIXME|BUG|HACK', line):
+                    self.issues.append(CodeIssue(
+                        line=i,
+                        column=0,
+                        severity=Severity.INFO,
+                        code="TODO_COMMENT",
+                        message="TODO/FIXME comment found in code",
+                        suggestion="Address the TODO or remove the comment",
+                        category="Code Quality"
+                    ))
+            
+            # Check for debug prints
+            if re.search(r'(console\.(log|error|warn)|print\(|println!|System\.out|Debug\.|printf)', line):
+                if not re.search(r'logger|LOG|log\.|logging', line):
+                    self.issues.append(CodeIssue(
+                        line=i,
+                        column=0,
+                        severity=Severity.LOW,
+                        code="DEBUG_OUTPUT",
+                        message="Debug output found in code",
+                        suggestion="Use a logger instead or remove before production",
+                        category="Code Quality"
+                    ))
+            
+            # Check for magic numbers
+            if re.search(r'=\s*[0-9]{3,}(?!\d)', line) and 'const' not in line and 'define' not in line:
+                self.issues.append(CodeIssue(
+                    line=i,
+                    column=0,
+                    severity=Severity.LOW,
+                    code="MAGIC_NUMBER",
+                    message="Magic number found in code",
+                    suggestion="Extract magic number to a named constant",
+                    category="Code Quality"
+                ))
+    
+    def _check_complexity_metrics(self) -> None:
+        """Check code complexity metrics"""
+        for i, line in enumerate(self.lines, 1):
+            # Check for deeply nested blocks
+            indent = len(line) - len(line.lstrip())
+            if indent > 32:  # 8 levels of indentation
+                self.issues.append(CodeIssue(
+                    line=i,
+                    column=indent,
+                    severity=Severity.MEDIUM,
+                    code="DEEP_NESTING",
+                    message="Code is deeply nested",
+                    suggestion="Refactor to reduce nesting levels",
+                    category="Complexity"
+                ))
+            
+            # Check for long lines
+            if len(line) > 120:
+                self.issues.append(CodeIssue(
+                    line=i,
+                    column=120,
+                    severity=Severity.LOW,
+                    code="LINE_TOO_LONG",
+                    message=f"Line is too long ({len(line)} characters)",
+                    suggestion="Break line into multiple lines for readability",
+                    category="Style"
+                ))
+    
+    def _check_security_patterns(self) -> None:
+        """Check for common security issues"""
+        for i, line in enumerate(self.lines, 1):
+            # Check for hardcoded credentials
+            if re.search(r'(password|apikey|secret|token)\s*[:=].*["\']', line, re.IGNORECASE):
+                self.issues.append(CodeIssue(
+                    line=i,
+                    column=0,
+                    severity=Severity.CRITICAL,
+                    code="HARDCODED_SECRET",
+                    message="Hardcoded secret found in code",
+                    suggestion="Use environment variables or secure vaults",
+                    category="Security"
+                ))
+            
+            # Check for SQL injection risks
+            if re.search(r'(SELECT|INSERT|UPDATE|DELETE|query|sql).*[\+]|.*f["' + "'" + r']|.*%|.*format', line, re.IGNORECASE):
+                if not re.search(r'prepared|parameterized|bind', line, re.IGNORECASE):
+                    self.issues.append(CodeIssue(
+                        line=i,
+                        column=0,
+                        severity=Severity.HIGH,
+                        code="SQL_INJECTION_RISK",
+                        message="Potential SQL injection vulnerability",
+                        suggestion="Use parameterized queries or prepared statements",
+                        category="Security"
+                    ))
+            
+            # Check for command injection
+            if re.search(r'(exec|system|shell|popen|Runtime|Process).*[\+]|.*f["' + "'" + r']|.*format', line, re.IGNORECASE):
+                self.issues.append(CodeIssue(
+                    line=i,
+                    column=0,
+                    severity=Severity.HIGH,
+                    code="COMMAND_INJECTION_RISK",
+                    message="Potential command injection vulnerability",
+                    suggestion="Avoid string concatenation for command execution",
+                    category="Security"
+                ))
+    
+    def _check_naming_patterns(self) -> None:
+        """Check naming conventions"""
+        for i, line in enumerate(self.lines, 1):
+            # Check for single-letter variables (except loop counters)
+            if re.search(r'\b[a-z]\s*=', line) and 'for' not in line:
+                self.issues.append(CodeIssue(
+                    line=i,
+                    column=0,
+                    severity=Severity.LOW,
+                    code="BAD_VARIABLE_NAME",
+                    message="Single-letter variable name is unclear",
+                    suggestion="Use descriptive variable names",
+                    category="Naming"
+                ))
