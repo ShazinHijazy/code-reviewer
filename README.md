@@ -1117,8 +1117,8 @@ The project is intended as an open and extensible foundation for experimenting w
 
 <div align="center">
 
-## Code Reviewer
+## CodeLens
 
-**Analyze locally. Understand clearly. Improve deliberately.**
+Analyze locally · Understand clearly · Improve deliberately
 
 </div>
