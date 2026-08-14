@@ -1,6 +1,6 @@
 <div align="center">
 
-# Code Reviewer
+# CodeLens
 
 ### Static Analysis, Code Quality & Local AI-Assisted Code Refinement
 
