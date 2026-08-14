@@ -14,9 +14,6 @@
   <a href="https://github.com/ShazinHijazy/code-reviewer">
     <img src="https://img.shields.io/github/stars/ShazinHijazy/code-reviewer?style=for-the-badge" alt="GitHub Stars">
   </a>
-  <a href="https://github.com/ShazinHijazy/code-reviewer">
-    <img src="https://img.shields.io/github/last-commit/ShazinHijazy/code-reviewer?style=for-the-badge" alt="Last Commit">
-  </a>
 </p>
 
 <p align="center">
@@ -39,7 +36,6 @@
   <a href="#architecture">Architecture</a> •
   <a href="#installation">Installation</a> •
   <a href="#usage">Usage</a> •
-  <a href="#api">API</a> •
   <a href="#testing">Testing</a> •
   <a href="#documentation">Documentation</a>
 </p>
@@ -831,9 +827,7 @@ LLM-assisted refinement has a different performance profile because model infere
 Therefore:
 
 $$
-T_{\text{total}}
-================
-
+T_{\text{total}}=
 T_{\text{static}}
 +
 T_{\text{optional refinement}}
@@ -1126,12 +1120,5 @@ The project is intended as an open and extensible foundation for experimenting w
 ## Code Reviewer
 
 **Analyze locally. Understand clearly. Improve deliberately.**
-
-<br>
-
-<img src="https://img.shields.io/badge/Static%20Analysis-Deterministic-6A5ACD?style=flat-square" alt="Static Analysis">
-<img src="https://img.shields.io/badge/AI%20Refinement-Optional-000000?style=flat-square" alt="AI Refinement">
-<img src="https://img.shields.io/badge/Privacy-Local--First-2E8B57?style=flat-square" alt="Privacy">
-<img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License">
 
 </div>
